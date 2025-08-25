@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Tour - Pusat Pemerintahan Kabupaten Ogan Ilir</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            overflow: hidden;
+            height: 100vh;
+            background-color: #000;
+        }
+
+        #tour-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        #info-panel h2 {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        #info-panel p {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        #navigation-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .nav-button {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        #location-menu {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 10;
+            max-height: 70vh;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+            width: 300px;
+            display: none;
+        }
+
+        #location-menu h2 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #close-menu {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .location-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .location-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .location-item.active {
+            background-color: rgba(0, 100, 200, 0.5);
+        }
+
+        .location-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        #menu-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 1.2rem;
+            backdrop-filter: blur(5px);
+        }
+
+        #logo {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 50px;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        #error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            z-index: 20;
+            display: none;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        #error-message button {
+            background: #0078d7;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        #error-message button:hover {
+            background: #0066c0;
+        }
+
+        @media (max-width: 768px) {
+            #info-panel {
+                max-width: 200px;
+                font-size: 0.8rem;
+                padding: 10px;
+                bottom: 70px;
+            }
+
+            .nav-button {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            #location-menu {
+                width: 90%;
+                left: 5%;
+                right: auto;
+            }
+
+            #logo {
+                height: 40px;
+            }
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            z-index: 10;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="tour-container">
+        <iframe id="tdv-iframe" src="about:blank"
+            allow="fullscreen; accelerometer; gyroscope; magnetometer; vr; xr; xr-spatial-tracking"></iframe>
+    </div>
+
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <p>Sedang Memuat Data Virtual Tour...</p>
+    </div>
+
+    <div id="error-message">
+        <h3>Masalah Memuat</h3>
+        <p>Kesulitan memuat panorama?</p>
+        <button onclick="retryLoad()">Coba Lagi</button>
+    </div>
+
+    <button id="menu-button">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <img id="logo"
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/University_of_Indonesia_logo.svg/320px-University_of_Indonesia_logo.svg.png"
+        alt="Logo" onerror="this.style.display='none'">
+
+    <div id="info-panel">
+        <h2>Pusat Pemerintahan Kabupaten Ogan Ilir</h2>
+        <p>Welcome to Pusat Pemerintahan Kabupaten Ogan Ilir, a hub of administrative and community activities.</p>
+    </div>
+
+    <div id="navigation-panel">
+        <button class="nav-button" id="fullscreen-button">
+            <i class="fas fa-expand"></i>
+        </button>
+        <button class="nav-button" id="vr-button">
+            <i class="fas fa-vr-cardboard"></i>
+        </button>
+        <button class="nav-button" id="locations-button">
+            <i class="fas fa-map-marker-alt"></i>
+        </button>
+    </div>
+
+    <div id="location-menu" style="display: none;">
+        <h2>Lokasi 360 Virtual <button id="close-menu"><i class="fas fa-times"></i></button></h2>
+        <div class="items" style="max-height: 300px; overflow-y: scroll;">
+            <div class="location-item active" data-scene="scene0">
+                <i class="fas fa-door-open"></i>
+                <span>Pintu Masuk Utama</span>
+            </div>
+            <div class="location-item" data-scene="scene1">
+                <i class="fas fa-hotel"></i>
+                <span>Area Lobi</span>
+            </div>
+            <div class="location-item" data-scene="scene2">
+                <i class="fas fa-database"></i>
+                <span>Ruang Pusat Data dan Informasi</span>
+            </div>
+            <div class="location-item" data-scene="scene3">
+                <i class="fas fa-user-tie"></i>
+                <span>Ruang Kerja Bupati</span>
+            </div>
+            <div class="location-item" data-scene="scene4">
+                <i class="fas fa-user-tie"></i>
+                <span>Ruang Kerja Wakil Bupati</span>
+            </div>
+            <div class="location-item" data-scene="scene5">
+                <i class="fas fa-users"></i>
+                <span>Ruang Rapat Utama</span>
+            </div>
+            <div class="location-item" data-scene="scene6">
+                <i class="fas fa-user-friends"></i>
+                <span>Ruang Asisten</span>
+            </div>
+            <div class="location-item" data-scene="scene7">
+                <i class="fas fa-user-graduate"></i>
+                <span>Ruang Kerja Sekda</span>
+            </div>
+            <div class="location-item" data-scene="scene8">
+                <i class="fas fa-users"></i>
+                <span>Ruang Rapat Sekda</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="watermark">
+        Virtual Tour - Pusat Pemerintahan Kabupaten Ogan Ilir
+    </div>
+
+    <script>
+        // Konfigurasi tour 3DVista
+        const tdvTourConfig = {
+            tourPath: 'assets/proj/',
+            indexFile: 'index.htm'
+        };
+
+        let isLoading = false;
+        let tdvIframe = document.getElementById('tdv-iframe');
+        let loadTimeout;
+        let currentScene = 'scene0';
+
+        // Mapping scene ID ke nama scene yang sesuai dengan 3DVista
+        // Anda mungkin perlu menyesuaikan ini dengan konfigurasi scene di tour 3DVista Anda
+        const sceneMapping = {
+            'scene0': 'Pintu Masuk Utama',
+            'scene1': 'Area Lobi',
+            'scene2': 'Ruang Pusat Data dan Informasi',
+            'scene3': 'Ruang Kerja Bupati',
+            'scene4': 'Ruang Kerja Wakil Bupati',
+            'scene5': 'Ruang Rapat Utama',
+            'scene6': 'Ruang Asisten',
+            'scene7': 'Ruang Kerja Sekda',
+            'scene8': 'Ruang Rapat Sekda'
+        };
+
+        function loadTour() {
+            if (isLoading) return;
+
+            isLoading = true;
+            document.getElementById('loading-screen').style.display = 'flex';
+            document.getElementById('error-message').style.display = 'none';
+
+            // Load tour 3DVista
+            const tourUrl = `${tdvTourConfig.tourPath}${tdvTourConfig.indexFile}`;
+            tdvIframe.src = tourUrl;
+
+            // Timer untuk mengecek jika tour berhasil dimuat
+            loadTimeout = setTimeout(() => {
+                hideLoadingScreen();
+            }, 8000);
+
+            // Event listener untuk ketika iframe selesai dimuat
+            tdvIframe.onload = function () {
+                clearTimeout(loadTimeout);
+                hideLoadingScreen();
+
+                // Setelah tour dimuat, kita bisa menambahkan event listeners
+                setupTourCommunication();
+            };
+
+            tdvIframe.onerror = function () {
+                clearTimeout(loadTimeout);
+                showError();
+            };
+        }
+
+        function hideLoadingScreen() {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+            isLoading = false;
+        }
+
+        function showError() {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('error-message').style.display = 'block';
+            isLoading = false;
+        }
+
+        function setupTourCommunication() {
+            // Fungsi ini untuk mengatur komunikasi antara halaman utama dan tour 3DVista
+
+            window.addEventListener('message', function (event) {
+                // Proses pesan dari tour 3DVista
+                try {
+                    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+                    if (data.type === 'sceneChange') {
+                        updateActiveScene(data.sceneId);
+                    }
+                } catch (e) {
+                    console.log('Pesan dari tour:', event.data);
+                }
+            });
+
+            // Kirim pesan ke iframe bahwa kita sudah siap
+            try {
+                tdvIframe.contentWindow.postMessage(
+                    JSON.stringify({
+                        action: 'init',
+                        source: 'parent'
+                    }),
+                    '*'
+                );
+            } catch (e) {
+                console.log('Tidak dapat mengirim pesan ke iframe:', e);
+            }
+        }
+
+        function changeScene(sceneId) {
+            currentScene = sceneId;
+
+            // Mengirim perintah ke iframe 3DVista untuk mengganti scene
+            // Bergantung pada API yang disediakan 3DVista
+            try {
+                tdvIframe.contentWindow.postMessage(
+                    JSON.stringify({
+                        action: 'changeScene',
+                        sceneId: sceneId,
+                        sceneName: sceneMapping[sceneId] || sceneId
+                    }),
+                    '*'
+                );
+
+                // Update UI
+                updateActiveScene(sceneId);
+            } catch (e) {
+                console.log('Tidak dapat mengirim pesan perubahan scene:', e);
+
+                // Fallback: update UI meskipun tidak bisa berkomunikasi dengan iframe
+                updateActiveScene(sceneId);
+            }
+        }
+
+        function updateActiveScene(sceneId) {
+            // Memperbarui menu lokasi berdasarkan scene aktif
+            document.querySelectorAll('.location-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.scene === sceneId);
+            });
+
+            // Memperbarui panel info berdasarkan scene
+            updateInfoPanel(sceneId);
+        }
+
+        function updateInfoPanel(sceneId) {
+            // Data info untuk setiap scene
+            const sceneInfo = {
+                'scene0': {
+                    title: 'Pintu Masuk Utama',
+                    description: 'Area pintu masuk utama Pusat Pemerintahan Kabupaten Ogan Ilir.'
+                },
+                'scene1': {
+                    title: 'Area Lobi',
+                    description: 'Lobi penerimaan tamu dan pengunjung.'
+                },
+                'scene2': {
+                    title: 'Ruang Pusat Data dan Informasi',
+                    description: 'Ruang pengolahan data dan informasi pemerintahan.'
+                },
+                'scene3': {
+                    title: 'Ruang Kerja Bupati',
+                    description: 'Ruang kerja resmi Bupati Ogan Ilir.'
+                },
+                'scene4': {
+                    title: 'Ruang Kerja Wakil Bupati',
+                    description: 'Ruang kerja resmi Wakil Bupati Ogan Ilir.'
+                },
+                'scene5': {
+                    title: 'Ruang Rapat Utama',
+                    description: 'Ruang rapat utama untuk pertemuan penting.'
+                },
+                'scene6': {
+                    title: 'Ruang Asisten',
+                    description: 'Ruang kerja para asisten pemerintahan.'
+                },
+                'scene7': {
+                    title: 'Ruang Kerja Sekda',
+                    description: 'Ruang kerja Sekretaris Daerah Kabupaten Ogan Ilir.'
+                },
+                'scene8': {
+                    title: 'Ruang Rapat Sekda',
+                    description: 'Ruang rapat Sekretaris Daerah.'
+                }
+            };
+
+            const info = sceneInfo[sceneId] || {
+                title: 'Pusat Pemerintahan Kabupaten Ogan Ilir',
+                description: 'Selamat datang di virtual tour Pusat Pemerintahan Kabupaten Ogan Ilir.'
+            };
+
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.querySelector('h2').textContent = info.title;
+            infoPanel.querySelector('p').textContent = info.description;
+        }
+
+        function retryLoad() {
+            document.getElementById('error-message').style.display = 'none';
+            loadTour();
+        }
+
+        // UI Events
+        document.getElementById('fullscreen-button').addEventListener('click', () => {
+            const container = document.getElementById('tour-container');
+            if (!document.fullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen().catch(err => {
+                        console.error('Error attempting to enable fullscreen:', err);
+                    });
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        document.getElementById('menu-button').addEventListener('click', () => {
+            document.getElementById('location-menu').style.display = 'block';
+        });
+
+        document.getElementById('close-menu').addEventListener('click', () => {
+            document.getElementById('location-menu').style.display = 'none';
+        });
+
+        document.getElementById('vr-button').addEventListener('click', () => {
+            // Mengaktifkan mode VR di tour 3DVista (jika didukung)
+            try {
+                tdvIframe.contentWindow.postMessage(
+                    JSON.stringify({
+                        action: 'enterVR'
+                    }),
+                    '*'
+                );
+            } catch (e) {
+                alert('Mode VR tidak didukung atau terjadi error.');
+                console.error('Error attempting VR mode:', e);
+            }
+        });
+
+        document.getElementById('locations-button').addEventListener('click', () => {
+            document.getElementById('location-menu').style.display = 'block';
+        });
+
+        document.querySelectorAll('.location-item').forEach(item => {
+            item.addEventListener('click', function () {
+                const sceneId = this.dataset.scene;
+                changeScene(sceneId);
+                document.getElementById('location-menu').style.display = 'none';
+            });
+        });
+
+        // Handle fullscreen change event
+        document.addEventListener('fullscreenchange', () => {
+            const fullscreenButton = document.getElementById('fullscreen-button');
+            if (document.fullscreenElement) {
+                fullscreenButton.innerHTML = '<i class="fas fa-compress"></i>';
+            } else {
+                fullscreenButton.innerHTML = '<i class="fas fa-expand"></i>';
+            }
+        });
+
+        // Inisialisasi tour ketika halaman dimuat
+        window.addEventListener('load', () => {
+            loadTour();
+        });
+    </script>
+</body>
+
+</html>
